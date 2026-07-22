@@ -152,6 +152,8 @@ export default function PersonalDashboard() {
   const [newMealTime, setNewMealTime] = useState('08:00');
   const [newMealName, setNewMealName] = useState('');
   const [newMealDesc, setNewMealDesc] = useState('');
+  const [dietValidUntil, setDietValidUntil] = useState<string | null>(null);
+  const [dietExpired, setDietExpired] = useState<boolean>(false);
 
   // Measurements Tab State
   const [measureStudentId, setMeasureStudentId] = useState<number>(0);
@@ -228,6 +230,8 @@ export default function PersonalDashboard() {
         const dietsData = await dietsRes.json();
         setDiets(dietsData.meals);
         setDietRequested(dietsData.dietRequested);
+        setDietValidUntil(dietsData.dietValidUntil);
+        setDietExpired(dietsData.expired);
       }
     } catch (err) {
       console.error('Error fetching student detail data:', err);
@@ -497,12 +501,32 @@ export default function PersonalDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentId: selectedStudent.id,
-          meals: dietMeals
+          meals: dietMeals,
+          validUntil: dietValidUntil
         })
       });
       if (res.ok) {
         setShowDietModal(false);
         handleSelectStudent(selectedStudent);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteDiet = async () => {
+    if (!selectedStudent) return;
+    if (!confirm('Deseja realmente excluir toda a dieta planejada para este aluno?')) return;
+    
+    try {
+      const res = await fetch(`/api/diets?studentId=${selectedStudent.id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        handleSelectStudent(selectedStudent);
+        fetchDashboardData();
+      } else {
+        alert('Erro ao excluir dieta.');
       }
     } catch (err) {
       console.error(err);
@@ -960,8 +984,19 @@ export default function PersonalDashboard() {
                         <button onClick={openDietBuilderModal} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
                           Definir Dieta
                         </button>
+                        {diets.length > 0 && (
+                          <button onClick={handleDeleteDiet} className="btn btn-danger" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', marginLeft: '0.5rem' }}>
+                            Excluir Dieta
+                          </button>
+                        )}
                       </div>
                     </div>
+
+                    {dietValidUntil && (
+                      <div style={{ fontSize: '0.85rem', color: dietExpired ? 'var(--color-danger)' : 'var(--text-secondary)', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+                        🗓️ Válida até: <strong>{dietValidUntil}</strong> {dietExpired ? ' (EXPIRADA - OCULTADA PARA O ALUNO)' : ''}
+                      </div>
+                    )}
 
                     {diets.length === 0 ? (
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Nenhum plano alimentar cadastrado.</p>
@@ -1412,6 +1447,16 @@ export default function PersonalDashboard() {
           <div className="glass-card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ marginBottom: '1.25rem' }}>Montar Dieta Personalizada</h3>
             
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">🗓️ Válida até (Deixe em branco para sem expiração):</label>
+              <input 
+                type="date" 
+                className="input-field" 
+                value={dietValidUntil || ''} 
+                onChange={(e) => setDietValidUntil(e.target.value || null)} 
+              />
+            </div>
+
             {/* Meal listings */}
             <div style={{ marginBottom: '1.5rem' }}>
               <h5 style={{ marginBottom: '0.5rem' }}>Refeições Planejadas:</h5>

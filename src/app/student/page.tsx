@@ -91,6 +91,8 @@ export default function StudentDashboard() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [dietRequested, setDietRequested] = useState(false);
   const [requestingDiet, setRequestingDiet] = useState(false);
+  const [dietValidUntil, setDietValidUntil] = useState<string | null>(null);
+  const [dietExpired, setDietExpired] = useState<boolean>(false);
 
   // Measurements data
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -156,6 +158,8 @@ export default function StudentDashboard() {
         const dietData = await dietRes.json();
         setMeals(dietData.meals || []);
         setDietRequested(dietData.dietRequested);
+        setDietValidUntil(dietData.dietValidUntil);
+        setDietExpired(dietData.expired);
       }
     } catch (err) {
       console.error('Error fetching diet data:', err);
@@ -614,16 +618,39 @@ export default function StudentDashboard() {
 
             {meals.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-                <HelpCircle size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-                <h4>Nenhuma dieta cadastrada.</h4>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                  {dietRequested
-                    ? 'Seu pedido já foi enviado! O Personal Trainer está montando seu plano alimentar.'
-                    : 'Você pode solicitar uma dieta personalizada ao seu personal clicando no botão acima.'}
-                </p>
+                <HelpCircle size={48} style={{ color: dietExpired ? 'var(--color-danger)' : 'var(--text-muted)', marginBottom: '1rem' }} />
+                {dietExpired ? (
+                  <>
+                    <h4 style={{ color: 'var(--color-danger)', marginBottom: '0.5rem' }}>Sua Dieta Expirou!</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                      A sua dieta anterior era válida até <strong>{dietValidUntil}</strong> e foi expirada. Solicite uma atualização ao seu Personal.
+                    </p>
+                    <button
+                      onClick={handleRequestDiet}
+                      className="btn btn-cyan"
+                      disabled={dietRequested || requestingDiet}
+                    >
+                      {dietRequested ? 'Nova Dieta Solicitada' : 'Solicitar Atualização de Dieta'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h4>Nenhuma dieta cadastrada.</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                      {dietRequested
+                        ? 'Seu pedido já foi enviado! O Personal Trainer está montando seu plano alimentar.'
+                        : 'Você pode solicitar uma dieta personalizada ao seu personal clicando no botão acima.'}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {dietValidUntil && (
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid var(--border-light)', display: 'inline-block' }}>
+                    🗓️ Dieta válida até: <strong>{dietValidUntil}</strong>
+                  </div>
+                )}
                 {meals.map((meal) => (
                   <div
                     key={meal.id}
