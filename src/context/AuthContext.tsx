@@ -56,14 +56,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = await fetchUser();
       setLoading(false);
 
-      const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/';
+      const isAuthPage = pathname === '/login' || pathname === '/register';
+      const isHome = pathname === '/';
       
       if (!currentUser) {
         if (!isAuthPage) {
           router.replace('/login');
         }
       } else {
-        if (isAuthPage) {
+        if (isAuthPage || isHome) {
           if (currentUser.role === 'personal') {
             router.replace('/personal');
           } else {
