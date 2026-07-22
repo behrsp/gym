@@ -106,12 +106,6 @@ export default function LoginPage() {
             Cadastre-se aqui
           </Link>
         </div>
-
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          <p style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>Contas de Demonstração (Personal):</p>
-          <p>📞 41991455646 / 🔑 123456</p>
-          <p>📞 41984842941 / 🔑 123456</p>
-        </div>
       </div>
     </div>
   );

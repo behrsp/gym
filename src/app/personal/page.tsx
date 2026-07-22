@@ -119,8 +119,20 @@ export default function PersonalDashboard() {
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState<'student' | 'personal'>('student');
   const [createError, setCreateError] = useState('');
   const [creatingStudent, setCreatingStudent] = useState(false);
+
+  // Edit Personal profile state
+  const [showEditPersonalModal, setShowEditPersonalModal] = useState(false);
+  const [personalName, setPersonalName] = useState('');
+  const [personalPhone, setPersonalPhone] = useState('');
+  const [personalEmail, setPersonalEmail] = useState('');
+  const [personalPassword, setPersonalPassword] = useState('');
+  const [personalProfilePic, setPersonalProfilePic] = useState('');
+  const [updatingPersonal, setUpdatingPersonal] = useState(false);
+  const [personalError, setPersonalError] = useState('');
+  const [personalMessage, setPersonalMessage] = useState('');
 
   // Workout Builder modal state
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
@@ -269,7 +281,7 @@ export default function PersonalDashboard() {
     }
   };
 
-  // Create new student
+  // Create new user (student or personal)
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreatingStudent(true);
@@ -283,7 +295,8 @@ export default function PersonalDashboard() {
           name: newName,
           email: newEmail,
           phone: newPhone,
-          password: newPassword
+          password: newPassword,
+          role: newRole
         })
       });
 
@@ -294,14 +307,62 @@ export default function PersonalDashboard() {
         setNewEmail('');
         setNewPhone('');
         setNewPassword('');
+        setNewRole('student');
         fetchDashboardData();
       } else {
-        setCreateError(data.error || 'Erro ao cadastrar aluno.');
+        setCreateError(data.error || 'Erro ao cadastrar usuário.');
       }
     } catch (err) {
-      setCreateError('Erro de rede ao cadastrar aluno.');
+      setCreateError('Erro de rede ao cadastrar usuário.');
     } finally {
       setCreatingStudent(false);
+    }
+  };
+
+  // Personal profile edit handlers
+  const openEditPersonalModal = () => {
+    if (!user) return;
+    setPersonalName(user.name);
+    setPersonalPhone(user.phone);
+    setPersonalEmail(user.email || '');
+    setPersonalPassword('');
+    setPersonalProfilePic(user.profile_picture || '');
+    setPersonalError('');
+    setPersonalMessage('');
+    setShowEditPersonalModal(true);
+  };
+
+  const handleUpdatePersonal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingPersonal(true);
+    setPersonalError('');
+    setPersonalMessage('');
+
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: personalName,
+          email: personalEmail,
+          phone: personalPhone,
+          password: personalPassword || undefined,
+          profile_picture: personalProfilePic
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setPersonalMessage('Perfil atualizado com sucesso!');
+        // Trigger page refresh to sync layout state
+        window.location.reload();
+      } else {
+        setPersonalError(data.error || 'Erro ao atualizar perfil.');
+      }
+    } catch (err) {
+      setPersonalError('Erro de rede ao atualizar perfil.');
+    } finally {
+      setUpdatingPersonal(false);
     }
   };
 
@@ -618,23 +679,42 @@ export default function PersonalDashboard() {
         </div>
 
         <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--color-primary)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700
-            }}>
-              {user?.name.charAt(0)}
-            </div>
-            <div>
-              <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>{user?.name}</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Personal Trainer</p>
+          <div 
+            onClick={openEditPersonalModal}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.75rem', 
+              marginBottom: '1rem',
+              cursor: 'pointer',
+              padding: '0.5rem',
+              borderRadius: 'var(--border-radius-sm)',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid transparent',
+              transition: 'var(--transition-smooth)'
+            }}
+            title="Editar Meu Perfil"
+          >
+            {user?.profile_picture ? (
+              <img src={user.profile_picture} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--color-primary)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700
+              }}>
+                {user?.name.charAt(0)}
+              </div>
+            )}
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <p style={{ fontSize: '0.9rem', fontWeight: 600, margin: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user?.name}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Editar Perfil ⚙️</p>
             </div>
           </div>
           <button onClick={logout} className="btn btn-secondary" style={{ width: '100%', gap: '0.5rem' }}>
@@ -1157,9 +1237,22 @@ export default function PersonalDashboard() {
           backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: '400px' }}>
-            <h3 style={{ marginBottom: '1.25rem' }}>Cadastrar Novo Aluno</h3>
+            <h3 style={{ marginBottom: '1.25rem' }}>
+              {newRole === 'personal' ? 'Cadastrar Novo Personal' : 'Cadastrar Novo Aluno'}
+            </h3>
             {createError && <p style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>{createError}</p>}
             <form onSubmit={handleCreateStudent}>
+              <div className="form-group">
+                <label className="form-label">Tipo de Conta</label>
+                <select 
+                  className="input-field" 
+                  value={newRole} 
+                  onChange={(e) => setNewRole(e.target.value as any)}
+                >
+                  <option value="student">Aluno</option>
+                  <option value="personal">Personal Trainer</option>
+                </select>
+              </div>
               <div className="form-group">
                 <label className="form-label">Nome Completo</label>
                 <input type="text" className="input-field" value={newName} onChange={(e) => setNewName(e.target.value)} required />
@@ -1370,6 +1463,62 @@ export default function PersonalDashboard() {
                 Salvar Dieta Completa
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* EDIT PERSONAL PROFILE MODAL */}
+      {showEditPersonalModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '400px' }}>
+            <h3 style={{ marginBottom: '1.25rem' }}>Personalizar Meu Perfil</h3>
+            {personalMessage && (
+              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid var(--color-primary)', color: '#a7f3d0', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', fontSize: '0.875rem', marginBottom: '1.25rem', textAlign: 'center' }}>
+                {personalMessage}
+              </div>
+            )}
+            {personalError && (
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--color-danger)', color: '#fca5a5', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', fontSize: '0.875rem', marginBottom: '1.25rem', textAlign: 'center' }}>
+                {personalError}
+              </div>
+            )}
+            <form onSubmit={handleUpdatePersonal}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                {personalProfilePic ? (
+                  <img src={personalProfilePic} alt={personalName} style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--color-primary)' }} />
+                ) : (
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 'bold' }}>
+                    {personalName.substring(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <label className="form-label">Foto de Perfil (URL ou Base64)</label>
+                  <input type="text" className="input-field" value={personalProfilePic} onChange={(e) => setPersonalProfilePic(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nome Completo</label>
+                <input type="text" className="input-field" value={personalName} onChange={(e) => setPersonalName(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">E-mail</label>
+                <input type="email" className="input-field" value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Telefone</label>
+                <input type="text" className="input-field" value={personalPhone} onChange={(e) => setPersonalPhone(e.target.value)} required />
+              </div>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label">Nova Senha (deixe vazio para manter)</label>
+                <input type="password" className="input-field" placeholder="Preencha apenas se for alterar" value={personalPassword} onChange={(e) => setPersonalPassword(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowEditPersonalModal(false)} className="btn btn-secondary">Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={updatingPersonal}>Salvar</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

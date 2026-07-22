@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Create student by personal trainer
+// Create user (student or personal) by personal trainer
 export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user || user.role !== 'personal') {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { name, email, phone, password } = await req.json();
+    const { name, email, phone, password, role } = await req.json();
 
     if (!name || !email || !phone || !password) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 });
@@ -48,34 +48,38 @@ export async function POST(req: NextRequest) {
     }
 
     const hash = bcrypt.hashSync(password, 10);
+    const userRole = role === 'personal' ? 'personal' : 'student';
+    
     const insertRes = await query(
       'INSERT INTO users (phone, email, password_hash, name, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, phone, email, name, role',
-      [phone, email, hash, name, 'student']
+      [phone, email, hash, name, userRole]
     );
 
-    const newStudent = insertRes.rows[0];
+    const newUser = insertRes.rows[0];
 
-    // Link student to this personal trainer
-    await query(
-      'INSERT INTO personal_students (personal_id, student_id) VALUES ($1, $2)',
-      [user.id, newStudent.id]
-    );
-
-    // Also link to other trainers so both have access
-    const otherPersonals = await query("SELECT id FROM users WHERE role = 'personal' AND id != $1", [user.id]);
-    for (const other of otherPersonals.rows) {
+    if (userRole === 'student') {
+      // Link student to this personal trainer
       await query(
         'INSERT INTO personal_students (personal_id, student_id) VALUES ($1, $2)',
-        [other.id, newStudent.id]
+        [user.id, newUser.id]
       );
+
+      // Also link to other trainers so both have access
+      const otherPersonals = await query("SELECT id FROM users WHERE role = 'personal' AND id != $1", [user.id]);
+      for (const other of otherPersonals.rows) {
+        await query(
+          'INSERT INTO personal_students (personal_id, student_id) VALUES ($1, $2)',
+          [other.id, newUser.id]
+        );
+      }
     }
 
     return NextResponse.json({
-      message: 'Aluno criado com sucesso.',
-      student: newStudent
+      message: userRole === 'personal' ? 'Personal Trainer cadastrado com sucesso.' : 'Aluno criado com sucesso.',
+      student: newUser
     });
   } catch (err: any) {
-    console.error('Error creating student:', err);
-    return NextResponse.json({ error: 'Erro ao criar aluno.' }, { status: 500 });
+    console.error('Error creating user:', err);
+    return NextResponse.json({ error: 'Erro ao criar usuário.' }, { status: 500 });
   }
 }
