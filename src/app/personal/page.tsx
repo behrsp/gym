@@ -848,7 +848,7 @@ export default function PersonalDashboard() {
 
         {/* TAB CONTENT: 1. STUDENTS LIST & DETAILS */}
         {activeTab === 'students' && (
-          <div style={{ display: 'grid', gridTemplateColumns: selectedStudent ? '1.2fr 1.8fr' : '1fr', gap: '2rem', flexWrap: 'wrap' }}>
+          <div className={`personal-students-layout ${selectedStudent ? 'has-selected' : ''}`}>
             {/* Student list grid */}
             <div>
               <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1169,7 +1169,7 @@ export default function PersonalDashboard() {
         {/* TAB CONTENT: 3. MESSAGING SYSTEM */}
         {activeTab === 'messages' && (
           <div className="glass-card animate-fade-in" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', height: '600px' }}>
+            <div className="personal-chat-layout">
               {/* Chat sidebar: list of students */}
               <div style={{ borderRight: '1px solid var(--border-light)', overflowY: 'auto' }}>
                 <h4 style={{ padding: '1rem', borderBottom: '1px solid var(--border-light)', margin: 0 }}>Conversas</h4>
